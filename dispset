@@ -1,0 +1,48 @@
+#!/bin/bash
+
+selected=`echo "\
+1:select window
+2:root window" | dmenu -p "Screenshot>"`
+
+umask 077
+
+TMP_SCREEN=/tmp/screen_${USER}_$$.png
+
+SCREEN_STORAGE=~/screenshots/
+
+case $selected in
+	1*)
+		scrot -b -s $TMP_SCREEN
+	;;
+	2*)
+		scrot $TMP_SCREEN
+	;;
+esac
+
+selected=`echo "\
+1:clipboard
+2:file
+3:upload" | dmenu -p "Screenshot>"`
+
+get_file_name() {
+	echo -n "" | dmenu -p "Screenshot filename>" | tr -d ' \t\r\n' 
+}
+
+case $selected in
+	1*)
+		cat $TMP_SCREEN | xclip -i -selection c -t image/png
+		notify-send "screenshot in clipboard"
+	;;
+	2*)
+		filename=`get_file_name`
+		[ -z $filename ] && exit 2
+		path=${SCREEN_STORAGE}/${filename}.png
+		cp --backup=numbered $TMP_SCREEN $path
+		notify-send "screenshot saved to $path"
+	;;
+	3*)
+		url=`curl -F "name=@${TMP_SCREEN}" https://img.vim-cn.com/`
+		echo $url | xclip -i
+		notify-send "uploaded: $url"
+	;;
+esac
